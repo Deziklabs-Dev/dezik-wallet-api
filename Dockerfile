@@ -57,4 +57,4 @@ USER nestjs
 EXPOSE 3000
 
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["node", "dist/main"]
+CMD ["node", "dist/main.js"]
