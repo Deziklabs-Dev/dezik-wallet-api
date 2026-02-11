@@ -1,52 +1,50 @@
 # Stage 1: Dependencies
-FROM node:20-alpine AS deps
+FROM node:20-slim AS deps
 WORKDIR /app
 
-# Instalar pnpm
-RUN npm install -g pnpm
+# Instalar pnpm y dependencias de sistema necesarias
+RUN npm install -g pnpm && \
+    apt-get update && apt-get install -y openssl && \
+    rm -rf /var/lib/apt/lists/*
 
-# Copy package files
 COPY package.json pnpm-lock.yaml* ./
 COPY prisma ./prisma/
 
-# Install production dependencies
 RUN pnpm install --prod --frozen-lockfile
 
 # Stage 2: Build
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 WORKDIR /app
 
-# Instalar pnpm
-RUN npm install -g pnpm
+RUN npm install -g pnpm && \
+    apt-get update && apt-get install -y openssl && \
+    rm -rf /var/lib/apt/lists/*
 
-# Copy package files
 COPY package.json pnpm-lock.yaml* ./
 COPY prisma ./prisma/
 
-# Install all dependencies
 RUN pnpm install --frozen-lockfile
 
-# Copy source code
 COPY . .
 
-# Generate Prisma Client (Asegura binarios para Alpine)
+# Generar Prisma Client
 RUN npx prisma generate
 
-# Build the application
+# Build
 RUN pnpm run build
 
 # Stage 3: Production
-FROM node:20-alpine AS runner
+FROM node:20-slim AS runner
 WORKDIR /app
 
-# INSTALACIÓN DE OPENSSL 1.1 (CRUCIAL PARA PRISMA EN ALPINE)
-RUN apk add --no-cache dumb-init openssl1.1-compat
+# Instalar dependencias de ejecución
+RUN apt-get update && apt-get install -y openssl dumb-init && \
+    rm -rf /var/lib/apt/lists/*
 
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nestjs -u 1001
+# Crear usuario de sistema
+RUN groupadd -g 1001 nodejs && \
+    useradd -u 1001 -g nodejs -s /bin/sh nestjs
 
-# Copy files
 COPY --from=builder --chown=nestjs:nodejs /app/dist ./dist
 COPY --from=builder --chown=nestjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nestjs:nodejs /app/prisma ./prisma
@@ -55,11 +53,8 @@ COPY --from=deps --chown=nestjs:nodejs /app/package.json ./
 ENV NODE_ENV=production
 ENV PORT=3000
 
-# Cambiamos a usuario no-root por seguridad
 USER nestjs
 EXPOSE 3000
 
-ENTRYPOINT ["dumb-init", "--"]
-
-# Ruta corregida según tu estructura dist/src/main.js
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 CMD ["node", "dist/src/main.js"]
