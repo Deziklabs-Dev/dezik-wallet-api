@@ -16,7 +16,7 @@ RUN pnpm install --prod --frozen-lockfile
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Instalar pnpm en esta etapa también
+# Instalar pnpm
 RUN npm install -g pnpm
 
 # Copy package files
@@ -29,7 +29,7 @@ RUN pnpm install --frozen-lockfile
 # Copy source code
 COPY . .
 
-# Generate Prisma Client
+# Generate Prisma Client (Asegura binarios para Alpine)
 RUN npx prisma generate
 
 # Build the application
@@ -39,7 +39,8 @@ RUN pnpm run build
 FROM node:20-alpine AS runner
 WORKDIR /app
 
-RUN apk add --no-cache dumb-init
+# INSTALACIÓN DE OPENSSL 1.1 (CRUCIAL PARA PRISMA EN ALPINE)
+RUN apk add --no-cache dumb-init openssl1.1-compat
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
@@ -53,8 +54,12 @@ COPY --from=deps --chown=nestjs:nodejs /app/package.json ./
 
 ENV NODE_ENV=production
 ENV PORT=3000
+
+# Cambiamos a usuario no-root por seguridad
 USER nestjs
 EXPOSE 3000
 
 ENTRYPOINT ["dumb-init", "--"]
+
+# Ruta corregida según tu estructura dist/src/main.js
 CMD ["node", "dist/src/main.js"]
