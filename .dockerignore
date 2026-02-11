@@ -1,0 +1,17 @@
+node_modules
+dist
+pnpm-debug.log
+.env
+.env.local
+.git
+.gitignore
+README.md
+.vscode
+.idea
+coverage
+.DS_Store
+*.log
+test
+*.spec.ts
+.eslintrc.js
+.prettierrc
