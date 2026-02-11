@@ -7,8 +7,8 @@ COPY package*.json ./
 COPY prisma ./prisma/
 
 # Install dependencies
-RUN npm ci --only=production && \
-    npm cache clean --force
+RUN pnpm ci --only=production && \
+    pnpm cache clean --force
 
 # Stage 2: Build
 FROM node:20-alpine AS builder
@@ -19,16 +19,16 @@ COPY package*.json ./
 COPY prisma ./prisma/
 
 # Install all dependencies (including dev dependencies)
-RUN npm ci
+RUN pnpm ci
 
 # Copy source code
 COPY . .
 
 # Generate Prisma Client
-RUN npx prisma generate
+RUN pnpm prisma generate
 
 # Build the application
-RUN npm run build
+RUN pnpm run build
 
 # Stage 3: Production
 FROM node:20-alpine AS runner
