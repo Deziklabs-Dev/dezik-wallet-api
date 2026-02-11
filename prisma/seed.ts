@@ -7,8 +7,8 @@ async function main() {
   console.log('Starting database seeding...');
 
   // Create admin user
-  const adminEmail = 'admin@example.com';
-  const adminPassword = 'admin123456'; // Change this in production!
+  const adminEmail = 'elkincarriel@gmail.com';
+  const adminPassword = 'Sebas200508!';
 
   const existingAdmin = await prisma.user.findUnique({
     where: { email: adminEmail },
@@ -31,7 +31,7 @@ async function main() {
       email: admin.email,
       role: admin.role,
     });
-    console.log('Default password: admin123456');
+    console.log('Default password: Sebas200508!');
     console.log('⚠️  IMPORTANT: Change this password in production!');
   }
 
