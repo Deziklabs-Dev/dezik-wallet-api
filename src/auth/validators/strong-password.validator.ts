@@ -10,7 +10,7 @@ export function IsStrongPassword(validationOptions?: ValidationOptions) {
       validator: {
         validate(value: any, args: ValidationArguments) {
           // At least 8 characters, one uppercase, one lowercase, one number, one special character
-          const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+          const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/;
           return typeof value === 'string' && regex.test(value);
         },
         defaultMessage(args: ValidationArguments) {

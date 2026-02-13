@@ -1,54 +1,47 @@
 # Stage 1: Dependencies
-FROM node:20-slim AS deps
+FROM oven/bun:1-alpine AS deps
 WORKDIR /app
 
-# Instalar pnpm y dependencias de sistema necesarias
-RUN npm install -g pnpm && \
-    apt-get update && apt-get install -y openssl && \
-    rm -rf /var/lib/apt/lists/*
-
-COPY package.json pnpm-lock.yaml* ./
+# Copy package files
+COPY package.json bun.lock ./
 COPY prisma ./prisma/
 
-RUN pnpm install --prod --frozen-lockfile
+# Install dependencies using bun
+RUN bun install --frozen-lockfile
 
 # Stage 2: Build
-FROM node:20-slim AS builder
+FROM oven/bun:1-alpine AS builder
 WORKDIR /app
 
-RUN npm install -g pnpm && \
-    apt-get update && apt-get install -y openssl && \
-    rm -rf /var/lib/apt/lists/*
-
-COPY package.json pnpm-lock.yaml* ./
+# Copy files from deps stage
+COPY --from=deps /app/node_modules ./node_modules
+COPY package.json bun.lock ./
 COPY prisma ./prisma/
 
-RUN pnpm install --frozen-lockfile
-
+# Copy source code
 COPY . .
 
-# Generar Prisma Client
-RUN npx prisma generate
+# Generate Prisma Client
+RUN bun x prisma generate
 
-# Build
-RUN pnpm run build
+# Build the application
+RUN bun run build
 
 # Stage 3: Production
-FROM node:20-slim AS runner
+FROM oven/bun:1-alpine AS runner
 WORKDIR /app
 
-# Instalar dependencias de ejecución
-RUN apt-get update && apt-get install -y openssl dumb-init && \
-    rm -rf /var/lib/apt/lists/*
+# Install runtime dependencies
+RUN apk add --no-cache dumb-init openssl
 
-# Crear usuario de sistema
-RUN groupadd -g 1001 nodejs && \
-    useradd -u 1001 -g nodejs -s /bin/sh nestjs
+# Create system user
+RUN addgroup -g 1001 nodejs && \
+    adduser -u 1001 -G nodejs -s /bin/sh -D nestjs
 
 COPY --from=builder --chown=nestjs:nodejs /app/dist ./dist
 COPY --from=builder --chown=nestjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nestjs:nodejs /app/prisma ./prisma
-COPY --from=deps --chown=nestjs:nodejs /app/package.json ./
+COPY --from=builder --chown=nestjs:nodejs /app/package.json ./
 
 ENV NODE_ENV=production
 ENV PORT=3000
@@ -56,5 +49,8 @@ ENV PORT=3000
 USER nestjs
 EXPOSE 3000
 
-ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-CMD ["node", "dist/src/main.js"]
+# Use dumb-init to handle signals properly
+ENTRYPOINT ["dumb-init", "--"]
+
+# Start the application using bun
+CMD ["bun", "dist/main.js"]
