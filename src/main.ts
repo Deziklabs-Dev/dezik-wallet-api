@@ -37,42 +37,45 @@ async function bootstrap() {
   // Set global prefix
   app.setGlobalPrefix('api');
 
-  // ── Swagger ──────────────────────────────────────────────────────────────
-  const config = new DocumentBuilder()
-    .setTitle('Dezik Wallet API')
-    .setDescription(
-      'API REST para la gestión multi-empresa del sistema Dezik Wallet.\n\n' +
-      '**Autenticación:** Usa el botón 🔒 Authorize e ingresa el Bearer token obtenido del endpoint `/api/auth/login`.',
-    )
-    .setVersion('1.0')
-    .addCookieAuth('access_token', {
-      type: 'apiKey',
-      in: 'cookie',
-      name: 'access_token',
-    })
-    .addBearerAuth(
-      { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
-      'JWT',
-    )
-    .addTag('auth', 'Autenticación y gestión de sesión')
-    .addTag('users', 'Gestión de usuarios del sistema')
-    .addTag('companies', 'Gestión de empresas (solo SUPER_ADMIN)')
-    .build();
+  const port = process.env.PORT || 3007;
 
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document, {
-    swaggerOptions: {
-      persistAuthorization: true,
-      tagsSorter: 'alpha',
-      operationsSorter: 'alpha',
-    },
-    customSiteTitle: 'Dezik Wallet — API Docs',
-  });
+  // ── Swagger (solo en desarrollo) ─────────────────────────────────────────
+  if (process.env.NODE_ENV !== 'production') {
+    const config = new DocumentBuilder()
+      .setTitle('Dezik Wallet API')
+      .setDescription(
+        'API REST para la gestión multi-empresa del sistema Dezik Wallet.\n\n' +
+        '**Autenticación:** Usa el botón 🔒 Authorize e ingresa el Bearer token obtenido del endpoint `/api/auth/login`.',
+      )
+      .setVersion('1.0')
+      .addCookieAuth('access_token', {
+        type: 'apiKey',
+        in: 'cookie',
+        name: 'access_token',
+      })
+      .addBearerAuth(
+        { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+        'JWT',
+      )
+      .addTag('auth', 'Autenticación y gestión de sesión')
+      .addTag('users', 'Gestión de usuarios del sistema')
+      .addTag('companies', 'Gestión de empresas (solo SUPER_ADMIN)')
+      .build();
+
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api/docs', app, document, {
+      swaggerOptions: {
+        persistAuthorization: true,
+        tagsSorter: 'alpha',
+        operationsSorter: 'alpha',
+      },
+      customSiteTitle: 'Dezik Wallet — API Docs',
+    });
+    console.log(`Swagger docs available at: http://localhost:${port}/api/docs`);
+  }
   // ─────────────────────────────────────────────────────────────────────────
 
-  const port = process.env.PORT || 3007;
   await app.listen(port);
   console.log(`Application is running on: http://localhost:${port}/api`);
-  console.log(`Swagger docs available at: http://localhost:${port}/api/docs`);
 }
 bootstrap();

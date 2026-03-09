@@ -1,8 +1,11 @@
+# NestJS build artifacts
 node_modules
 dist
-pnpm-debug.log
+
+# Development files
 .env
 .env.local
+.env.*.local
 .git
 .gitignore
 README.md

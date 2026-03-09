@@ -43,6 +43,10 @@ COPY --from=builder --chown=nestjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nestjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nestjs:nodejs /app/package.json ./
 
+# Create entrypoint script to run migrations then start app
+COPY --chown=nestjs:nodejs entrypoint.sh ./entrypoint.sh
+RUN chmod +x entrypoint.sh
+
 ENV NODE_ENV=production
 ENV PORT=3000
 
@@ -50,7 +54,4 @@ USER nestjs
 EXPOSE 3000
 
 # Use dumb-init to handle signals properly
-ENTRYPOINT ["dumb-init", "--"]
-
-# Start the application using bun
-CMD ["bun", "dist/main.js"]
+ENTRYPOINT ["dumb-init", "--", "/app/entrypoint.sh"]
