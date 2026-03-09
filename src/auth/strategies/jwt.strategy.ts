@@ -3,6 +3,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { Request } from 'express';
 import { ConfigService } from '@nestjs/config';
+import { Role } from '@prisma/client';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -19,10 +20,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any) {
+    const superAdminEmail = this.configService.get<string>('SUPER_ADMIN_EMAIL');
+    const effectiveRole =
+      superAdminEmail && payload.email === superAdminEmail
+        ? Role.SUPER_ADMIN
+        : payload.role;
+
     return {
       id: payload.sub,
       email: payload.email,
-      role: payload.role,
+      role: effectiveRole,
     };
   }
 }

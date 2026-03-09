@@ -11,6 +11,7 @@ datasource db {
 }
 
 enum Role {
+  SUPER_ADMIN
   ADMIN
   USER
 }
@@ -24,4 +25,16 @@ model User {
   updatedAt DateTime @updatedAt
 
   @@map("users")
+}
+
+model Company {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  apiUrl    String
+  apiKey    String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("companies")
 }

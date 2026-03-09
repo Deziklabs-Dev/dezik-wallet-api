@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
@@ -13,7 +14,7 @@ async function bootstrap() {
     crossOriginEmbedderPolicy: false,
   }));
 
-  // Enable CORS with specific origin (SECURITY FIX)
+  // Enable CORS with specific origin
   app.enableCors({
     origin: process.env.FRONTEND_URL || 'http://localhost:3000',
     credentials: true,
@@ -36,8 +37,42 @@ async function bootstrap() {
   // Set global prefix
   app.setGlobalPrefix('api');
 
-  const port = process.env.PORT || 3000;
+  // ── Swagger ──────────────────────────────────────────────────────────────
+  const config = new DocumentBuilder()
+    .setTitle('Dezik Wallet API')
+    .setDescription(
+      'API REST para la gestión multi-empresa del sistema Dezik Wallet.\n\n' +
+      '**Autenticación:** Usa el botón 🔒 Authorize e ingresa el Bearer token obtenido del endpoint `/api/auth/login`.',
+    )
+    .setVersion('1.0')
+    .addCookieAuth('access_token', {
+      type: 'apiKey',
+      in: 'cookie',
+      name: 'access_token',
+    })
+    .addBearerAuth(
+      { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+      'JWT',
+    )
+    .addTag('auth', 'Autenticación y gestión de sesión')
+    .addTag('users', 'Gestión de usuarios del sistema')
+    .addTag('companies', 'Gestión de empresas (solo SUPER_ADMIN)')
+    .build();
+
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api/docs', app, document, {
+    swaggerOptions: {
+      persistAuthorization: true,
+      tagsSorter: 'alpha',
+      operationsSorter: 'alpha',
+    },
+    customSiteTitle: 'Dezik Wallet — API Docs',
+  });
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const port = process.env.PORT || 3007;
   await app.listen(port);
   console.log(`Application is running on: http://localhost:${port}/api`);
+  console.log(`Swagger docs available at: http://localhost:${port}/api/docs`);
 }
 bootstrap();
