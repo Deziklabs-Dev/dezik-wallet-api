@@ -5,4 +5,4 @@ echo "Running Prisma migrations..."
 bun x prisma migrate deploy
 
 echo "Starting application..."
-exec bun dist/main.js
+exec bun dist/src/main.js
