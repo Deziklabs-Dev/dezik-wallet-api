@@ -1,6 +1,6 @@
 import {
     Controller, Get, Post, Put, Delete, Body, Param,
-    UseGuards, HttpCode, HttpStatus,
+    UseGuards, HttpCode, HttpStatus, Req,
 } from '@nestjs/common';
 import {
     ApiTags, ApiOperation, ApiResponse, ApiParam, ApiCookieAuth,
@@ -17,16 +17,16 @@ import { Role } from '@prisma/client';
 @ApiCookieAuth('access_token')
 @Controller('companies')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.SUPER_ADMIN)
+@Roles(Role.SUPER_ADMIN, Role.ADMIN)
 export class CompaniesController {
     constructor(private readonly companiesService: CompaniesService) { }
 
     @Get()
     @ApiOperation({ summary: 'Listar todas las empresas registradas' })
     @ApiResponse({ status: 200, description: 'Lista de empresas (sin apiKey por seguridad)' })
-    @ApiResponse({ status: 403, description: 'Solo SUPER_ADMIN' })
-    findAll() {
-        return this.companiesService.findAll();
+    @ApiResponse({ status: 403, description: 'Solo SUPER_ADMIN o ADMIN' })
+    findAll(@Req() req: any) {
+        return this.companiesService.findAll(req.user.role, req.user.id);
     }
 
     @Get(':id')
@@ -34,36 +34,39 @@ export class CompaniesController {
     @ApiParam({ name: 'id', description: 'UUID de la empresa' })
     @ApiResponse({ status: 200, description: 'Datos de la empresa' })
     @ApiResponse({ status: 404, description: 'Empresa no encontrada' })
-    findOne(@Param('id') id: string) {
-        return this.companiesService.findOne(id);
+    findOne(@Param('id') id: string, @Req() req: any) {
+        return this.companiesService.findOne(id, req.user.role, req.user.id);
     }
 
     @Post()
+    @Roles(Role.SUPER_ADMIN)
     @HttpCode(HttpStatus.CREATED)
-    @ApiOperation({ summary: 'Crear una nueva empresa' })
+    @ApiOperation({ summary: 'Crear una nueva empresa (Solo SUPER_ADMIN)' })
     @ApiResponse({ status: 201, description: 'Empresa creada exitosamente' })
     @ApiResponse({ status: 409, description: 'Ya existe una empresa con ese nombre' })
-    create(@Body() createCompanyDto: CreateCompanyDto) {
-        return this.companiesService.create(createCompanyDto);
+    create(@Body() createCompanyDto: CreateCompanyDto, @Req() req: any) {
+        return this.companiesService.create(createCompanyDto, req.user.role, req.user.id);
     }
 
     @Put(':id')
-    @ApiOperation({ summary: 'Actualizar datos de una empresa' })
+    @Roles(Role.SUPER_ADMIN)
+    @ApiOperation({ summary: 'Actualizar datos de una empresa (Solo SUPER_ADMIN)' })
     @ApiParam({ name: 'id', description: 'UUID de la empresa' })
     @ApiResponse({ status: 200, description: 'Empresa actualizada' })
     @ApiResponse({ status: 404, description: 'Empresa no encontrada' })
-    update(@Param('id') id: string, @Body() updateCompanyDto: UpdateCompanyDto) {
-        return this.companiesService.update(id, updateCompanyDto);
+    update(@Param('id') id: string, @Body() updateCompanyDto: UpdateCompanyDto, @Req() req: any) {
+        return this.companiesService.update(id, updateCompanyDto, req.user.role, req.user.id);
     }
 
     @Delete(':id')
+    @Roles(Role.SUPER_ADMIN)
     @HttpCode(HttpStatus.NO_CONTENT)
-    @ApiOperation({ summary: 'Eliminar una empresa' })
+    @ApiOperation({ summary: 'Eliminar una empresa (Solo SUPER_ADMIN)' })
     @ApiParam({ name: 'id', description: 'UUID de la empresa' })
     @ApiResponse({ status: 204, description: 'Empresa eliminada' })
     @ApiResponse({ status: 404, description: 'Empresa no encontrada' })
-    remove(@Param('id') id: string) {
-        return this.companiesService.remove(id);
+    remove(@Param('id') id: string, @Req() req: any) {
+        return this.companiesService.remove(id, req.user.role, req.user.id);
     }
 
     @Get(':id/credentials')

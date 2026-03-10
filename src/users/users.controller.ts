@@ -32,15 +32,24 @@ export class UsersController {
     if (req.user.role !== Role.SUPER_ADMIN && createUserDto.role === Role.SUPER_ADMIN) {
       throw new ForbiddenException('Solo un Super Administrador puede crear otros Super Administradores');
     }
-    return this.usersService.create(createUserDto);
+    let activeCompanyId = req.cookies?.['active_company_id'];
+    if (activeCompanyId === 'null' || activeCompanyId === 'undefined' || activeCompanyId === '') {
+      activeCompanyId = undefined;
+    }
+    const finalCompanyId = createUserDto.companyId || activeCompanyId;
+    return this.usersService.create(createUserDto, req.user.id, req.user.role, finalCompanyId);
   }
 
   @Get()
   @Roles(Role.ADMIN, Role.SUPER_ADMIN)
   @ApiOperation({ summary: 'Listar todos los usuarios' })
   @ApiResponse({ status: 200, description: 'Lista de usuarios' })
-  findAll() {
-    return this.usersService.findAll();
+  findAll(@Req() req: any) {
+    let activeCompanyId = req.cookies?.['active_company_id'];
+    if (activeCompanyId === 'null' || activeCompanyId === 'undefined' || activeCompanyId === '') {
+      activeCompanyId = undefined;
+    }
+    return this.usersService.findAll(req.user.id, req.user.role, activeCompanyId);
   }
 
   @Get(':id')
@@ -49,8 +58,8 @@ export class UsersController {
   @ApiParam({ name: 'id', description: 'UUID del usuario' })
   @ApiResponse({ status: 200, description: 'Datos del usuario' })
   @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
-  findOne(@Param('id') id: string) {
-    return this.usersService.findOne(id);
+  findOne(@Param('id') id: string, @Req() req: any) {
+    return this.usersService.findOne(id, req.user.id, req.user.role);
   }
 
   @Patch(':id')
@@ -64,7 +73,7 @@ export class UsersController {
     if (req.user.role !== Role.SUPER_ADMIN && updateUserDto.role === Role.SUPER_ADMIN) {
       throw new ForbiddenException('Solo un Super Administrador puede asignar el rol de Super Administrador');
     }
-    return this.usersService.update(id, updateUserDto);
+    return this.usersService.update(id, updateUserDto, req.user.id, req.user.role);
   }
 
   @Delete(':id')
@@ -73,7 +82,7 @@ export class UsersController {
   @ApiParam({ name: 'id', description: 'UUID del usuario' })
   @ApiResponse({ status: 200, description: 'Usuario eliminado' })
   @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
-  remove(@Param('id') id: string) {
-    return this.usersService.remove(id);
+  remove(@Param('id') id: string, @Req() req: any) {
+    return this.usersService.remove(id, req.user.id, req.user.role);
   }
 }

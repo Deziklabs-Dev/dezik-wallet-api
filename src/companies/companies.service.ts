@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
@@ -7,8 +7,16 @@ import { UpdateCompanyDto } from './dto/update-company.dto';
 export class CompaniesService {
     constructor(private prisma: PrismaService) { }
 
-    async findAll() {
+    async findAll(userRole?: string, userId?: string) {
+        let whereCondition = {};
+        if (userRole === 'ADMIN' && userId) {
+            const user = await this.prisma.user.findUnique({ where: { id: userId } });
+            if (!user?.companyId) return []; // Un ADMIN sin empresa no ve nada
+            whereCondition = { id: user.companyId };
+        }
+
         return this.prisma.company.findMany({
+            where: whereCondition,
             orderBy: { createdAt: 'asc' },
             select: {
                 id: true,
@@ -17,12 +25,18 @@ export class CompaniesService {
                 isActive: true,
                 createdAt: true,
                 updatedAt: true,
-                // apiKey is intentionally excluded from list for security
             },
         });
     }
 
-    async findOne(id: string) {
+    async findOne(id: string, userRole?: string, userId?: string) {
+        if (userRole === 'ADMIN' && userId) {
+            const user = await this.prisma.user.findUnique({ where: { id: userId } });
+            if (user?.companyId !== id) {
+                throw new ForbiddenException('No tienes permisos para ver esta empresa');
+            }
+        }
+
         const company = await this.prisma.company.findUnique({ where: { id } });
         if (!company) {
             throw new NotFoundException(`Empresa con id "${id}" no encontrada`);
@@ -30,8 +44,15 @@ export class CompaniesService {
         return company;
     }
 
-    async create(createCompanyDto: CreateCompanyDto) {
-        return this.prisma.company.create({
+    async create(createCompanyDto: CreateCompanyDto, userRole?: string, userId?: string) {
+        if (userRole === 'ADMIN' && userId) {
+            const user = await this.prisma.user.findUnique({ where: { id: userId } });
+            if (user?.companyId) {
+                throw new ForbiddenException('Ya tienes una empresa asignada. No puedes crear otra.');
+            }
+        }
+
+        const company = await this.prisma.company.create({
             data: createCompanyDto,
             select: {
                 id: true,
@@ -42,10 +63,19 @@ export class CompaniesService {
                 updatedAt: true,
             },
         });
+
+        if (userRole === 'ADMIN' && userId) {
+            await this.prisma.user.update({
+                where: { id: userId },
+                data: { companyId: company.id },
+            });
+        }
+
+        return company;
     }
 
-    async update(id: string, updateCompanyDto: UpdateCompanyDto) {
-        await this.findOne(id);
+    async update(id: string, updateCompanyDto: UpdateCompanyDto, userRole?: string, userId?: string) {
+        await this.findOne(id, userRole, userId); // findOne validates ADMIN access
         return this.prisma.company.update({
             where: { id },
             data: updateCompanyDto,
@@ -60,8 +90,8 @@ export class CompaniesService {
         });
     }
 
-    async remove(id: string) {
-        await this.findOne(id);
+    async remove(id: string, userRole?: string, userId?: string) {
+        await this.findOne(id, userRole, userId);
         return this.prisma.company.delete({ where: { id } });
     }
 

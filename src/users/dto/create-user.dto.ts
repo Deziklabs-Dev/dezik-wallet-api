@@ -19,4 +19,9 @@ export class CreateUserDto {
   @IsEnum(Role)
   @IsOptional()
   role?: Role;
+
+  @ApiPropertyOptional({ example: 'uuid', description: 'ID de la empresa a la que se asocia el usuario' })
+  @IsString()
+  @IsOptional()
+  companyId?: string;
 }
