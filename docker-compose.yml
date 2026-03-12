@@ -1,15 +1,17 @@
 services:
   db:
-    image: postgres:17-alpine
-    container_name: digital-wallet-db
+    image: postgres:15-alpine
+    container_name: dezik-wallet-db-dev
     environment:
-      POSTGRES_USER: wallet_user
-      POSTGRES_PASSWORD: wallet_pass
-      POSTGRES_DB: digital_wallet
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-root}
+      POSTGRES_DB: ${POSTGRES_DB:-digital_wallet}
     ports:
       - "5440:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+# NOTE: This file is for local API development only.
+# For full-stack deployment use the root docker-compose.yml.
 volumes:
   postgres_data:

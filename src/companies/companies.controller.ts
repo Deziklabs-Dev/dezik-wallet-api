@@ -44,8 +44,8 @@ export class CompaniesController {
     @ApiOperation({ summary: 'Crear una nueva empresa (Solo SUPER_ADMIN)' })
     @ApiResponse({ status: 201, description: 'Empresa creada exitosamente' })
     @ApiResponse({ status: 409, description: 'Ya existe una empresa con ese nombre' })
-    create(@Body() createCompanyDto: CreateCompanyDto, @Req() req: any) {
-        return this.companiesService.create(createCompanyDto, req.user.role, req.user.id);
+    create(@Body() createCompanyDto: CreateCompanyDto) {
+        return this.companiesService.create(createCompanyDto);
     }
 
     @Put(':id')
@@ -72,11 +72,12 @@ export class CompaniesController {
     @Get(':id/credentials')
     @ApiOperation({
         summary: 'Obtener credenciales de una empresa (uso server-side)',
-        description: 'Retorna apiUrl y apiKey. Llamado solo por el proxy de Next.js, nunca por el cliente.',
+        description: 'Retorna apiUrl y apiKey. Llamado solo por el proxy de Next.js, nunca por el cliente. Un ADMIN solo puede obtener credenciales de su propia empresa.',
     })
     @ApiParam({ name: 'id', description: 'UUID de la empresa' })
     @ApiResponse({ status: 200, description: 'Credenciales de la empresa' })
-    getCredentials(@Param('id') id: string) {
-        return this.companiesService.getCredentials(id);
+    @ApiResponse({ status: 403, description: 'ADMIN intentando acceder a empresa que no es la suya' })
+    getCredentials(@Param('id') id: string, @Req() req: any) {
+        return this.companiesService.getCredentials(id, req.user.role, req.user.id);
     }
 }
