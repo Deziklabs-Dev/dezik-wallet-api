@@ -41,14 +41,11 @@ COPY --from=builder --chown=nestjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nestjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nestjs:nodejs /app/package.json ./
 
-# Entrypoint: runs prisma migrate deploy then starts app
-COPY --chown=nestjs:nodejs entrypoint.sh ./entrypoint.sh
-RUN chmod +x entrypoint.sh
-
 ENV NODE_ENV=production
 ENV PORT=3000
 
 USER nestjs
 EXPOSE 3000
 
-ENTRYPOINT ["dumb-init", "--", "/app/entrypoint.sh"]
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["sh", "-c", "echo 'Running Prisma migrations...'; bun x prisma migrate deploy; echo 'Running database seed (idempotent)...'; bun x prisma db seed || echo 'Seed skipped or already applied.'; echo 'Starting application...'; exec bun dist/src/main.js"]
